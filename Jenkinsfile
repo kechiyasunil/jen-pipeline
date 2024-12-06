@@ -1,5 +1,18 @@
 pipeline {
     agent any
+    triggers {
+        // Configure a webhook in your repository to trigger this pipeline on new commits.
+        genericTrigger(
+            genericVariables: [
+                [key: 'ref', value: '$.ref'],
+                [key: 'commit_id', value: '$.after']
+            ],
+            causeString: 'Triggered by a new commit',
+            token: 'your-webhook-token', // Replace with your webhook token
+            printContributedVariables: true,
+            printPostContent: true
+        )
+    }
     stages {
         stage('Preparation') {
             steps {
@@ -95,6 +108,32 @@ pipeline {
                 echo 'Step 9: Production deployment completed.'
                 echo 'Step 10: Pipeline execution complete. System is live!'
             }
+        }
+    }
+    post {
+        success {
+            echo 'Pipeline completed successfully.'
+            emailext(
+                subject: "Pipeline Successful: ${JOB_NAME} #${BUILD_NUMBER}",
+                body: """<p>A new commit triggered the pipeline.</p>
+                         <p>Commit ID: ${commit_id}</p>
+                         <p>Build Number: ${BUILD_NUMBER}</p>
+                         <p>Status: SUCCESS</p>
+                         <p>Check the details here: <a href="${BUILD_URL}">${BUILD_URL}</a></p>""",
+                to: 'kechiya8493@gmail.com'
+            )
+        }
+        failure {
+            echo 'Pipeline failed.'
+            emailext(
+                subject: "Pipeline Failed: ${JOB_NAME} #${BUILD_NUMBER}",
+                body: """<p>A new commit triggered the pipeline.</p>
+                         <p>Commit ID: ${commit_id}</p>
+                         <p>Build Number: ${BUILD_NUMBER}</p>
+                         <p>Status: FAILURE</p>
+                         <p>Check the details here: <a href="${BUILD_URL}">${BUILD_URL}</a></p>""",
+                to: 'kechiya8493@gmail.com'
+            )
         }
     }
 }
